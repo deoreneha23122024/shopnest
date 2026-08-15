@@ -32,7 +32,9 @@ const ProductDetailPage = () => {
   }, [id, dispatch]);
 
   const handleCart = () => {
-    if (!inCart && product) {
+    if (inCart) {
+      navigate('/cart');
+    } else if (product) {
       dispatch(addToCart({
         id: product.id, title: product.title, price: product.price,
         image: product.image, category: product.category, quantity: 1,
@@ -43,6 +45,20 @@ const ProductDetailPage = () => {
       }));
       toast.success(`Added to cart 🛒`);
     }
+  };
+
+  const handleBuyNow = () => {
+    if (!inCart && product) {
+      dispatch(addToCart({
+        id: product.id, title: product.title, price: product.price,
+        image: product.image, category: product.category, quantity: 1,
+      }));
+      dispatch(syncAddToCart({
+        id: product.id, title: product.title, price: product.price,
+        image: product.image, category: product.category, quantity: 1,
+      }));
+    }
+    navigate('/cart'); // or checkout depending on flow
   };
 
   const handleWishlist = () => {
@@ -168,14 +184,14 @@ const ProductDetailPage = () => {
             <div className="flex gap-2 mt-4">
               <button
                 onClick={handleCart}
-                disabled={inCart}
                 className={`flex-1 flex items-center justify-center gap-2 py-4 rounded-sm font-bold text-white text-[16px] transition-all shadow-md active:scale-95 ${
-                  inCart ? 'bg-green-500 cursor-not-allowed' : 'bg-[#ff9f00] hover:bg-[#f39800]'
+                  inCart ? 'bg-green-500 hover:bg-green-600' : 'bg-[#ff9f00] hover:bg-[#f39800]'
                 }`}
               >
                 {inCart ? <><FiCheck size={20} /> GO TO CART</> : <><FiShoppingCart size={20} /> ADD TO CART</>}
               </button>
               <button
+                onClick={handleBuyNow}
                 className="flex-1 flex items-center justify-center gap-2 py-4 rounded-sm font-bold text-white text-[16px] transition-all shadow-md bg-[#fb641b] hover:bg-[#f25f18] active:scale-95"
               >
                 <FiZap size={20} /> BUY NOW
