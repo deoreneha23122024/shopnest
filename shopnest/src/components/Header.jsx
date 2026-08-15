@@ -182,7 +182,14 @@ const Header = () => {
       <div className="bg-white shadow-sm hidden md:block">
         <div className="max-w-[1248px] mx-auto px-4 py-2 flex items-center justify-between">
           {CATEGORIES.map(cat => (
-            <div key={cat.name} className="flex flex-col items-center justify-center cursor-pointer group px-2 py-1">
+            <div 
+              key={cat.name} 
+              onClick={() => {
+                const searchParam = cat.name === 'Beauty, Toys & More' ? 'toys' : cat.name.toLowerCase().split(' ')[0];
+                navigate(`/?search=${encodeURIComponent(searchParam)}`);
+              }}
+              className="flex flex-col items-center justify-center cursor-pointer group px-2 py-1"
+            >
               <span className="text-2xl mb-1 group-hover:scale-110 transition-transform">{cat.icon}</span>
               <span className="text-[13px] font-medium text-fk-text group-hover:text-fk-blue">{cat.name}</span>
             </div>
