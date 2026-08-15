@@ -118,20 +118,21 @@ export const setupStore = createAsyncThunk(
 export const getMe = createAsyncThunk(
   'auth/getMe',
   async (_, { rejectWithValue }) => {
+    const token = localStorage.getItem('shopnest_token');
+    if (!token) return rejectWithValue('no_token');
     try {
       const response = await fetch(`${API_BASE}/api/auth/me`, {
-        headers: {
-          ...getAuthHeader(),
-        },
+        headers: { ...getAuthHeader() },
       });
       if (!response.ok) {
         const err = await response.json();
-        return rejectWithValue(err.message || 'Failed to fetch user');
+        return rejectWithValue(err.message || 'auth_failed');
       }
       const data = await response.json();
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      // Network error (backend offline) — don't clear session
+      return rejectWithValue('network_error');
     }
   }
 );
@@ -251,11 +252,14 @@ const authSlice = createSlice({
       .addCase(getMe.fulfilled, (state, action) => {
         state.user = action.payload.user;
       })
-      .addCase(getMe.rejected, (state) => {
-        state.user = null;
-        state.token = null;
-        state.isLoggedIn = false;
-        localStorage.removeItem('shopnest_token');
+      .addCase(getMe.rejected, (state, action) => {
+        // Only clear session on real auth errors, NOT network failures
+        if (action.payload !== 'network_error') {
+          state.user = null;
+          state.token = null;
+          state.isLoggedIn = false;
+          localStorage.removeItem('shopnest_token');
+        }
       });
   },
 });

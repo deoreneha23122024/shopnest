@@ -39,9 +39,9 @@ export const fetchLocaleSettings = createAsyncThunk(
 );
 
 const initialState = {
-  countryCode: 'US', // default
-  currency: 'USD', // default
-  exchangeRate: 1, // default 1:1 for USD
+  countryCode: 'IN',
+  currency: 'INR',
+  exchangeRate: 83.5,
   status: 'idle',
 };
 

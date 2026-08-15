@@ -8,10 +8,17 @@ export const fetchProducts = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_BASE}/api/products`);
-      if (!response.ok) throw new Error('Failed to fetch products');
+      if (!response.ok) throw new Error('Backend unavailable');
       return await response.json();
     } catch (error) {
-      return rejectWithValue(error.message);
+      // Backend unreachable — fall back to public FakeStore API
+      try {
+        const res = await fetch('https://fakestoreapi.com/products');
+        const data = await res.json();
+        return data.map(p => ({ ...p, inStock: true }));
+      } catch (e) {
+        return rejectWithValue('Failed to load products');
+      }
     }
   }
 );
@@ -21,10 +28,16 @@ export const fetchCategories = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_BASE}/api/products/categories`);
-      if (!response.ok) throw new Error('Failed to fetch categories');
+      if (!response.ok) throw new Error('Backend unavailable');
       return await response.json();
     } catch (error) {
-      return rejectWithValue(error.message);
+      // Fallback to FakeStore categories
+      try {
+        const res = await fetch('https://fakestoreapi.com/products/categories');
+        return await res.json();
+      } catch (e) {
+        return rejectWithValue('Failed to load categories');
+      }
     }
   }
 );
@@ -34,10 +47,18 @@ export const fetchProductById = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await fetch(`${API_BASE}/api/products/id/${id}`);
-      if (!response.ok) throw new Error('Failed to fetch product');
+      if (!response.ok) throw new Error('Backend unavailable');
       return await response.json();
     } catch (error) {
-      return rejectWithValue(error.message);
+      // Fallback to FakeStore single product
+      try {
+        const res = await fetch(`https://fakestoreapi.com/products/${id}`);
+        if (!res.ok) throw new Error('Product not found');
+        const data = await res.json();
+        return { ...data, inStock: true };
+      } catch (e) {
+        return rejectWithValue('Product not found');
+      }
     }
   }
 );
