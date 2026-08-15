@@ -100,15 +100,48 @@ const CheckoutPage = () => {
   };
 
   const handlePayment = async () => {
-    const orderData = { items: cartItems, total: cartTotal, address, paymentMethod: 'cod' };
-    try {
-      await dispatch(placeOrder(orderData)).unwrap();
-      dispatch(clearCart());
-      toast.success('Order placed successfully! 🎉');
-      navigate('/orders');
-    } catch (error) {
-      toast.error('Failed to place order. Please try again.');
+    const orderData = { items: cartItems, total: cartTotal, address, paymentMethod };
+
+    if (paymentMethod === 'cod') {
+      try {
+        await dispatch(placeOrder(orderData)).unwrap();
+        dispatch(clearCart());
+        toast.success('Order placed successfully! 🎉');
+        navigate('/orders');
+      } catch (error) {
+        toast.error('Failed to place order. Please try again.');
+      }
+      return;
     }
+
+    // Card / UPI via Razorpay
+    const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID || '';
+    if (!RAZORPAY_KEY) {
+      toast('💳 Online payments coming soon! Please use Cash on Delivery for now.', { icon: 'ℹ️', duration: 4000 });
+      return;
+    }
+    const res = await loadRazorpayScript();
+    if (!res) { toast.error('Razorpay SDK failed to load.'); return; }
+    const options = {
+      key: RAZORPAY_KEY,
+      amount: Math.round(cartTotal * 100),
+      currency: 'INR',
+      name: 'ShopNest',
+      description: 'Order Payment',
+      handler: async function (response) {
+        try {
+          await dispatch(placeOrder({ ...orderData, paymentId: response.razorpay_payment_id })).unwrap();
+          dispatch(clearCart());
+          toast.success('Payment successful & Order placed!');
+          navigate('/orders');
+        } catch (error) { toast.error('Failed to save order'); }
+      },
+      prefill: { name: address.name, email: 'customer@shopnest.com', contact: address.mobile || '9999999999' },
+      theme: { color: '#2874f0' },
+    };
+    const paymentObject = new window.Razorpay(options);
+    paymentObject.on('payment.failed', () => toast.error('Payment failed. Please try again.'));
+    paymentObject.open();
   };
 
   const AccordionHeader = ({ num, title, isActive, isCompleted }) => (
@@ -224,27 +257,50 @@ const CheckoutPage = () => {
           <div className="bg-white shadow-sm rounded-sm overflow-hidden">
             <AccordionHeader num="3" title={t('payment_options')} isActive={step === 3} isCompleted={false} />
             {step === 3 && (
-              <div className="p-6 bg-white">
-                {/* COD Only Banner */}
-                <div className="flex items-center gap-4 p-4 border-2 border-[#2874f0] rounded-sm bg-blue-50">
-                  <input type="radio" checked readOnly className="accent-fk-blue w-4 h-4" />
-                  <Truck className="text-[#2874f0] w-6 h-6 flex-shrink-0" />
-                  <div>
-                    <p className="text-[15px] font-semibold text-gray-800">Cash on Delivery</p>
-                    <p className="text-[12px] text-gray-500 mt-0.5">Pay when your order arrives at your doorstep. No extra charges.</p>
+              <div className="p-4 space-y-2 bg-white">
+
+                {/* Card */}
+                <label className={`flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-all ${
+                  paymentMethod === 'card' ? 'border-[#2874f0] bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
+                }`}>
+                  <input type="radio" name="payment" checked={paymentMethod === 'card'} onChange={() => setPaymentMethod('card')} className="accent-fk-blue" />
+                  <CreditCard className="text-fk-blue w-5 h-5" />
+                  <div className="flex-1">
+                    <span className="text-[14px] font-medium">Credit / Debit / ATM Card</span>
+                    <span className="ml-2 text-[11px] text-orange-500 font-medium bg-orange-50 px-2 py-0.5 rounded-sm">Coming Soon</span>
                   </div>
-                </div>
+                </label>
 
-                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-sm flex items-center gap-2">
-                  <span className="text-green-600 text-[13px] font-medium">✅ Safe & Secure — No online payment required</span>
-                </div>
+                {/* UPI */}
+                <label className={`flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-all ${
+                  paymentMethod === 'upi' ? 'border-[#2874f0] bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
+                }`}>
+                  <input type="radio" name="payment" checked={paymentMethod === 'upi'} onChange={() => setPaymentMethod('upi')} className="accent-fk-blue" />
+                  <Wallet className="text-fk-blue w-5 h-5" />
+                  <div className="flex-1">
+                    <span className="text-[14px] font-medium">UPI</span>
+                    <span className="ml-2 text-[11px] text-orange-500 font-medium bg-orange-50 px-2 py-0.5 rounded-sm">Coming Soon</span>
+                  </div>
+                </label>
 
-                <div className="pt-6 flex justify-end">
+                {/* COD */}
+                <label className={`flex items-center gap-3 p-4 border rounded-sm cursor-pointer transition-all ${
+                  paymentMethod === 'cod' ? 'border-[#2874f0] bg-blue-50' : 'border-gray-200 hover:bg-gray-50'
+                }`}>
+                  <input type="radio" name="payment" checked={paymentMethod === 'cod'} onChange={() => setPaymentMethod('cod')} className="accent-fk-blue" />
+                  <Truck className="text-fk-blue w-5 h-5" />
+                  <div className="flex-1">
+                    <span className="text-[14px] font-medium">Cash on Delivery</span>
+                    <span className="ml-2 text-[11px] text-green-600 font-medium bg-green-50 px-2 py-0.5 rounded-sm">✓ Available</span>
+                  </div>
+                </label>
+
+                <div className="pt-4 flex justify-end">
                   <button
                     onClick={handlePayment}
-                    className="bg-[#fb641b] hover:bg-[#f25f18] active:scale-95 text-white px-12 py-4 rounded-sm font-bold uppercase text-[15px] shadow-md transition-all"
+                    className="bg-[#fb641b] hover:bg-[#f25f18] active:scale-95 text-white px-10 py-3 rounded-sm font-bold uppercase text-[14px] shadow transition-all"
                   >
-                    Place Order — {formatPrice(cartTotal)}
+                    {t('pay', { amount: formatPrice(cartTotal) })}
                   </button>
                 </div>
               </div>
