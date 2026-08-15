@@ -25,6 +25,7 @@ const Header = () => {
   const cartCount = useSelector(selectCartItemCount);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showLangDropdown, setShowLangDropdown] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { t, i18n } = useTranslation();
 
   const changeLanguage = (lng) => {
@@ -35,6 +36,13 @@ const Header = () => {
   const handleLogout = () => {
     dispatch(logoutUser());
     navigate('/');
+  };
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   const isSeller = user?.role === 'seller';
@@ -57,14 +65,18 @@ const Header = () => {
           </Link>
 
           {/* Search Bar */}
-          <div className="flex-1 max-w-[550px] relative">
+          <form onSubmit={handleSearch} className="flex-1 max-w-[550px] relative">
             <input
               type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('search_placeholder')}
               className="w-full h-9 pl-4 pr-10 text-sm text-black rounded-sm focus:outline-none shadow-sm placeholder-gray-500"
             />
-            <Search className="absolute right-3 top-2 h-5 w-5 text-fk-blue cursor-pointer" />
-          </div>
+            <button type="submit">
+              <Search className="absolute right-3 top-2 h-5 w-5 text-fk-blue cursor-pointer" />
+            </button>
+          </form>
 
           {/* Right Actions */}
           <div className="flex items-center gap-8 ml-4">
@@ -115,7 +127,7 @@ const Header = () => {
                         <Link to="/register" className="text-fk-blue font-semibold hover:underline">Sign Up</Link>
                       </div>
                       
-                      <Link to="/profile" className="flex items-center px-4 py-3 hover:bg-gray-50 text-fk-text">
+                      <Link to="/orders" className="flex items-center px-4 py-3 hover:bg-gray-50 text-fk-text">
                         <User className="w-4 h-4 mr-4 text-fk-blue" /> My Profile
                       </Link>
                       

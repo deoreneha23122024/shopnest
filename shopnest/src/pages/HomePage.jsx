@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import {
   fetchProducts, fetchCategories,
   selectFilteredProducts, selectCategories,
@@ -7,7 +8,7 @@ import {
 } from '../store/productsSlice';
 import Banner from '../components/Banner';
 import ProductCard from '../components/ProductCard';
-import { FiLoader, FiChevronRight } from 'react-icons/fi';
+import { FiLoader, FiChevronRight, FiX } from 'react-icons/fi';
 import { useCurrency } from '../hooks/useCurrency';
 import { useTranslation } from 'react-i18next';
 
@@ -17,11 +18,25 @@ const HomePage = () => {
   const status = useSelector(selectProductsStatus);
   const { formatPrice } = useCurrency();
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const searchQuery = searchParams.get('search') || '';
+  const [selectedCategory, setSelectedCategory] = useState('');
 
   useEffect(() => {
     dispatch(fetchProducts());
     dispatch(fetchCategories());
   }, [dispatch]);
+
+  // Filter products by search and category
+  const filteredProducts = products.filter(p => {
+    const matchesSearch = !searchQuery || 
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.category.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = !selectedCategory || p.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const isFiltered = searchQuery || selectedCategory;
 
   // Group products by category for horizontal scrolling sections
   const electronics = products.filter(p => p.category === 'electronics').slice(0, 7);
@@ -79,6 +94,34 @@ const HomePage = () => {
             <button onClick={() => dispatch(fetchProducts())} className="bg-fk-blue text-white px-6 py-2 rounded-sm font-semibold shadow">
               Retry
             </button>
+          </div>
+        ) : isFiltered ? (
+          // Search / Category Results
+          <div className="bg-white shadow-sm my-4 rounded-sm p-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4 mb-4">
+              <h2 className="text-[18px] font-medium">
+                {searchQuery ? `Results for "${searchQuery}"` : `Category: ${selectedCategory}`}
+                <span className="text-[14px] text-gray-400 ml-2">({filteredProducts.length} items)</span>
+              </h2>
+              <button
+                onClick={() => { setSearchParams({}); setSelectedCategory(''); }}
+                className="flex items-center gap-1 text-[13px] text-[#2874f0] hover:underline"
+              >
+                <FiX size={14} /> Clear filter
+              </button>
+            </div>
+            {filteredProducts.length === 0 ? (
+              <div className="py-12 text-center text-gray-400">
+                <p className="text-[16px] font-medium mb-2">No products found</p>
+                <p className="text-[13px]">Try a different search term</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {filteredProducts.map(product => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <>

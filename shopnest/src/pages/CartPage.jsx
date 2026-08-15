@@ -36,7 +36,7 @@ export default function CartPage() {
   // Flipkart calculates discounts on the original price. We'll simulate 20% flat discount on total original.
   const totalOriginal = total * 1.25;
   const discount = totalOriginal - total;
-  const delivery = total > 50 ? 0 : 5;
+  const delivery = total > 500 ? 0 : 40;
   const grandTotal = total + delivery;
 
   return (
@@ -50,7 +50,7 @@ export default function CartPage() {
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-100">
               <div className="text-[18px] font-medium text-black flex items-center gap-2">
-                Flipkart ({items.length})
+              ShopNest ({items.length})
               </div>
               <div className="flex gap-4">
                 <button 

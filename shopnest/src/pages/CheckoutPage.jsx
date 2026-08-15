@@ -8,7 +8,7 @@ import { CheckCircle2, ChevronRight, CreditCard, Wallet, Truck, MapPin, Navigati
 import { useCurrency } from '../hooks/useCurrency';
 import { useTranslation } from 'react-i18next';
 
-const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_xxxxxx';
+const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID || '';
 
 const INDIAN_STATES = [
   'Andaman and Nicobar Islands', 'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 
@@ -111,15 +111,22 @@ const CheckoutPage = () => {
       return;
     }
 
+    if (paymentMethod === 'card' || paymentMethod === 'upi') {
+      if (!RAZORPAY_KEY) {
+        toast.error('Online payment is not configured yet. Please select Cash on Delivery or contact support.');
+        return;
+      }
+    }
+
     const res = await loadRazorpayScript();
-    if (!res) { toast.error('Razorpay SDK failed to load'); return; }
+    if (!res) { toast.error('Razorpay SDK failed to load. Check your internet connection.'); return; }
 
     const options = {
       key: RAZORPAY_KEY,
-      amount: cartTotal * 100 * 80,
+      amount: Math.round(cartTotal * 100), // amount in paise (INR)
       currency: 'INR',
       name: 'ShopNest',
-      description: 'Test Transaction',
+      description: 'Order Payment',
       handler: async function (response) {
         try {
           await dispatch(placeOrder({ ...orderData, paymentId: response.razorpay_payment_id })).unwrap();
@@ -128,10 +135,11 @@ const CheckoutPage = () => {
           navigate('/orders');
         } catch (error) { toast.error('Failed to save order'); }
       },
-      prefill: { name: address.name, email: 'test@shopnest.com', contact: '9999999999' },
+      prefill: { name: address.name, email: 'customer@shopnest.com', contact: address.mobile || '9999999999' },
       theme: { color: '#2874f0' },
     };
     const paymentObject = new window.Razorpay(options);
+    paymentObject.on('payment.failed', () => toast.error('Payment failed. Please try again.'));
     paymentObject.open();
   };
 

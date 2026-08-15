@@ -1,137 +1,117 @@
 import { useDispatch, useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { selectWishlistItems, toggleWishlist } from '../store/wishlistSlice';
 import { addToCart, selectIsInCart } from '../store/cartSlice';
-import { FiTrash2, FiHeart, FiShoppingCart, FiCheck, FiHome } from 'react-icons/fi';
+import { useCurrency } from '../hooks/useCurrency';
+import { FiTrash2, FiHeart, FiShoppingCart, FiCheck } from 'react-icons/fi';
 
 function WishlistRow({ item }) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const inCart = useSelector(selectIsInCart(item.id));
+  const { formatPrice } = useCurrency();
+
+  const handleAddToCart = () => {
+    if (!inCart) {
+      dispatch(addToCart({ ...item, quantity: 1 }));
+    } else {
+      navigate('/cart');
+    }
+  };
 
   return (
-    <tr className="border-b border-dark-600 hover:bg-dark-700/30 transition-colors" id={`wishlist-item-${item.id}`}>
-      {/* Product */}
-      <td className="py-4 px-4">
-        <div className="flex items-center gap-4">
-          <Link to={`/product/${item.id}`} className="flex-shrink-0">
-            <div className="w-16 h-16 bg-white/5 rounded-xl flex items-center justify-center overflow-hidden border border-dark-600">
-              <img src={item.image} alt={item.title} className="w-full h-full object-contain p-2" />
-            </div>
-          </Link>
-          <Link to={`/product/${item.id}`} className="text-white text-sm font-medium hover:text-accent transition-colors line-clamp-2 max-w-xs">
-            {item.title}
-          </Link>
+    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 border-b border-gray-100 hover:bg-gray-50 transition-colors" id={`wishlist-item-${item.id}`}>
+      {/* Image */}
+      <Link to={`/product/${item.id}`} className="flex-shrink-0">
+        <div className="w-20 h-20 border border-gray-100 rounded-sm flex items-center justify-center overflow-hidden bg-white p-1">
+          <img src={item.image} alt={item.title} className="w-full h-full object-contain" />
         </div>
-      </td>
-      {/* Price */}
-      <td className="py-4 px-4">
-        <span className="text-white font-bold text-base">${item.price}</span>
-      </td>
-      {/* Stock Status */}
-      <td className="py-4 px-4">
-        <span className="inline-flex items-center gap-1.5 text-green-400 text-sm font-medium">
-          <span className="w-2 h-2 bg-green-400 rounded-full" />
+      </Link>
+
+      {/* Details */}
+      <div className="flex-1 min-w-0">
+        <Link to={`/product/${item.id}`} className="text-[14px] text-gray-800 font-medium hover:text-[#2874f0] line-clamp-2">
+          {item.title}
+        </Link>
+        <p className="text-[12px] text-gray-500 mt-1 capitalize">{item.category}</p>
+        <div className="flex items-center gap-2 mt-2">
+          <span className="text-[16px] font-bold text-gray-900">{formatPrice(item.price)}</span>
+          <span className="text-[13px] text-gray-400 line-through">{formatPrice(item.price * 1.25)}</span>
+          <span className="text-green-600 text-[12px] font-medium">20% off</span>
+        </div>
+        <span className="inline-flex items-center gap-1 text-green-600 text-[12px] font-medium mt-1">
+          <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
           In Stock
         </span>
-      </td>
-      {/* Action */}
-      <td className="py-4 px-4">
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-3 sm:flex-col sm:items-end">
         <button
-          onClick={() => !inCart && dispatch(addToCart({ ...item, quantity: 1 }))}
-          disabled={inCart}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
+          onClick={handleAddToCart}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-sm text-[13px] font-semibold transition-all ${
             inCart
-              ? 'bg-green-500/10 text-green-400 border-green-500/30 cursor-default'
-              : 'bg-accent hover:bg-accent-dark text-white border-transparent shadow-md shadow-accent/20'
+              ? 'bg-white border border-[#2874f0] text-[#2874f0] hover:bg-[#2874f0] hover:text-white'
+              : 'bg-[#ff9f00] hover:bg-[#f39800] text-white shadow-sm'
           }`}
           id={`wl-cart-${item.id}`}
         >
-          {inCart ? <><FiCheck size={14} /> In Cart</> : <><FiShoppingCart size={14} /> Add to Cart</>}
+          {inCart ? <><FiCheck size={14} /> GO TO CART</> : <><FiShoppingCart size={14} /> ADD TO CART</>}
         </button>
-      </td>
-      {/* Remove */}
-      <td className="py-4 px-4">
         <button
           onClick={() => dispatch(toggleWishlist(item))}
-          className="w-8 h-8 flex items-center justify-center rounded-lg bg-dark-700 hover:bg-red-500/10 text-gray-400 hover:text-red-400 transition-all"
+          className="flex items-center gap-1 text-[13px] text-gray-500 hover:text-red-500 transition-colors"
           id={`wl-remove-${item.id}`}
-          title="Remove"
         >
-          <FiTrash2 size={15} />
+          <FiTrash2 size={14} /> Remove
         </button>
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 }
-
 
 export default function WishlistPage() {
   const items = useSelector(selectWishlistItems);
 
   if (items.length === 0) {
     return (
-      <div className="min-h-screen pt-24 flex flex-col items-center justify-center text-center px-4">
-        <div className="text-8xl mb-6">💝</div>
-        <h2 className="font-display text-3xl font-bold text-white mb-3">Your wishlist is empty</h2>
-        <p className="text-gray-400 mb-8">Save your favourites and come back to purchase later.</p>
-        <Link to="/" className="btn-primary flex items-center gap-2">
-          <FiHeart /> Discover Products
-        </Link>
+      <div className="min-h-screen bg-[#f1f3f6] flex items-center justify-center">
+        <div className="bg-white shadow-sm rounded-sm p-12 text-center max-w-sm w-full mx-4">
+          <FiHeart className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+          <h2 className="text-[18px] font-semibold text-gray-700 mb-2">Empty Wishlist</h2>
+          <p className="text-gray-400 text-[14px] mb-6">You have no items in your wishlist. Start adding!</p>
+          <Link to="/" className="inline-block bg-[#2874f0] text-white px-8 py-3 rounded-sm font-medium text-[14px] hover:bg-[#1a65d6]">
+            Shop Now
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen pt-20 pb-16">
-      {/* Hero Banner */}
-      <div className="bg-gradient-to-r from-dark-800 to-dark-700 py-12 mb-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="font-display text-4xl font-bold text-white mb-2">Wishlist</h1>
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
-            <Link to="/" className="hover:text-accent transition-colors flex items-center gap-1">
-              <FiHome size={13} /> Home
-            </Link>
-            <span>/</span>
-            <span className="text-accent">Wishlist</span>
+    <div className="min-h-screen bg-[#f1f3f6] py-6 font-sans">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-[12px] text-gray-500 mb-4">
+          <Link to="/" className="hover:text-[#2874f0]">Home</Link>
+          <span>/</span>
+          <span className="text-gray-800">My Wishlist</span>
+        </div>
+
+        <div className="bg-white shadow-sm rounded-sm overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <h1 className="text-[18px] font-semibold text-gray-800">
+              My Wishlist <span className="text-[14px] text-gray-400 font-normal">({items.length} items)</span>
+            </h1>
           </div>
-        </div>
-      </div>
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-4 text-gray-400 text-sm">
-          <Link to="/" className="hover:text-accent transition-colors">Home</Link>
-          <span className="mx-2">/</span>
-          <span>Shop</span>
-          <span className="mx-2">/</span>
-          <span className="text-white">Wishlist</span>
-        </div>
-
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-dark-600 bg-dark-700/50">
-                  <th className="py-4 px-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Product</th>
-                  <th className="py-4 px-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Price</th>
-                  <th className="py-4 px-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Stock Status</th>
-                  <th className="py-4 px-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Action</th>
-                  <th className="py-4 px-4 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Remove</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => (
-                  <WishlistRow key={item.id} item={item} />
-                ))}
-              </tbody>
-            </table>
+          {/* Items */}
+          <div>
+            {items.map((item) => (
+              <WishlistRow key={item.id} item={item} />
+            ))}
           </div>
-        </div>
-
-        <div className="mt-6 flex justify-between items-center">
-          <Link to="/" className="btn-outline flex items-center gap-2 text-sm py-2.5">
-            ← Continue Shopping
-          </Link>
-          <p className="text-gray-400 text-sm">{items.length} item{items.length !== 1 ? 's' : ''} in wishlist</p>
         </div>
       </div>
     </div>
